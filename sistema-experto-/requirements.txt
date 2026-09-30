@@ -1,0 +1,11 @@
+# Dependencias minimas. Instalar con:
+#   python -m pip install fastapi "uvicorn[standard]" nicegui httpx pytest
+# Una vez verificado que todo funciona, reemplazar este archivo por las
+# versiones exactas probadas:
+#   python -m pip freeze > requirements.txt
+fastapi>=0.115
+uvicorn[standard]>=0.30
+nicegui>=2.0
+httpx>=0.27
+pydantic>=2.9
+pytest>=8.0

@@ -1,0 +1,313 @@
+{
+  "tema": "Diagnostico de conectividad en redes domesticas e internet",
+  "version": "1.0",
+  "reglas": [
+    {
+      "id": "R01",
+      "descripcion": "Detecta ausencia de cualquier medio fisico o inalambrico de conexion activo en el dispositivo del usuario.",
+      "condiciones": [
+        {"hecho": "cable_ethernet_conectado", "operador": "eq", "valor": "no"},
+        {"hecho": "wifi_activado_en_dispositivo", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "sin_medio_conexion", "valor": true},
+      "prioridad": 90,
+      "explicacion": "Si el cable Ethernet no esta conectado y el Wi-Fi del dispositivo esta desactivado, no existe ningun canal fisico por el cual el equipo pueda alcanzar la red.",
+      "fuente": "Cisco Networking Academy, Introduction to Networks, cap. 1"
+    },
+    {
+      "id": "R02",
+      "descripcion": "A partir de la ausencia de medio de conexion, confirma que no hay red inalambrica visible, lo que descarta un problema de cobertura y apunta a una desactivacion deliberada o de hardware.",
+      "condiciones": [
+        {"hecho": "sin_medio_conexion", "operador": "eq", "valor": true},
+        {"hecho": "dispositivo_ve_red_wifi", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "fallo_interfaz_red", "valor": true},
+      "prioridad": 85,
+      "explicacion": "Sin cable y sin ver ninguna red Wi-Fi (ni la propia), el problema esta en la interfaz de red del dispositivo (adaptador apagado, en modo avion o danado), no en el router.",
+      "fuente": "Manual de usuario de adaptadores de red Intel Wi-Fi, seccion de solucion de problemas"
+    },
+    {
+      "id": "R03",
+      "descripcion": "Concluye que el problema de conectividad es local al dispositivo cuando el router esta encendido pero el equipo no tiene interfaz de red operativa.",
+      "condiciones": [
+        {"hecho": "fallo_interfaz_red", "operador": "eq", "valor": true},
+        {"hecho": "led_power_encendido", "operador": "eq", "valor": "si"}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "Problema de configuracion de red en el dispositivo del usuario",
+        "recomendacion": "Active el adaptador Wi-Fi o conecte el cable Ethernet; verifique que el dispositivo no este en modo avion y reinicie el adaptador de red."
+      },
+      "prioridad": 80,
+      "explicacion": "El router tiene energia (LED encendido) pero el dispositivo no logra ver ninguna red, por lo que la falla se ubica en la configuracion local del equipo del usuario.",
+      "fuente": "Cisco Networking Academy, Introduction to Networks, cap. 1"
+    },
+    {
+      "id": "R04",
+      "descripcion": "Detecta que el router no tiene energia electrica cuando su LED de encendido esta apagado.",
+      "condiciones": [
+        {"hecho": "led_power_encendido", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "router_sin_energia", "valor": true},
+      "prioridad": 95,
+      "explicacion": "El LED de encendido apagado es el indicador estandar de fabricantes de routers domesticos para senalar falta de alimentacion electrica.",
+      "fuente": "Manual de usuario TP-Link Archer serie, guia de indicadores LED"
+    },
+    {
+      "id": "R05",
+      "descripcion": "Confirma que la falta de energia no se debe a un reinicio en curso y concluye falla de alimentacion.",
+      "condiciones": [
+        {"hecho": "router_sin_energia", "operador": "eq", "valor": true},
+        {"hecho": "reinicio_router_reciente", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "Router sin alimentacion electrica",
+        "recomendacion": "Revise que el cable de poder este firmemente conectado y que el enchufe o regleta tenga corriente; pruebe con otro tomacorriente antes de descartar el router."
+      },
+      "prioridad": 90,
+      "explicacion": "Si el router no esta simplemente reiniciandose y aun asi no muestra energia, la causa mas probable es un corte de alimentacion, un cable suelto o una fuente danada.",
+      "fuente": "Manual de usuario TP-Link Archer serie, guia de indicadores LED"
+    },
+    {
+      "id": "R06",
+      "descripcion": "Detecta fallo de autenticacion cuando el dispositivo ve la red Wi-Fi pero la contrasena ingresada es incorrecta.",
+      "condiciones": [
+        {"hecho": "dispositivo_ve_red_wifi", "operador": "eq", "valor": "si"},
+        {"hecho": "contrasena_wifi_correcta", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "fallo_autenticacion_wifi", "valor": true},
+      "prioridad": 85,
+      "explicacion": "Ver la red pero no poder unirse a ella es la firma caracteristica de una contrasena incorrecta o de una clave de seguridad desactualizada en el dispositivo.",
+      "fuente": "IEEE 802.11i, especificacion de autenticacion WPA2/WPA3"
+    },
+    {
+      "id": "R07",
+      "descripcion": "Convierte el fallo de autenticacion Wi-Fi en una conclusion con recomendacion concreta.",
+      "condiciones": [
+        {"hecho": "fallo_autenticacion_wifi", "operador": "eq", "valor": true}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "Contrasena Wi-Fi incorrecta o clave guardada desactualizada",
+        "recomendacion": "Vuelva a ingresar la contrasena de la red, elimine la red guardada en el dispositivo y reconectese, o verifique la clave impresa en la etiqueta del router."
+      },
+      "prioridad": 80,
+      "explicacion": "Una vez identificado el fallo de autenticacion, la accion correctiva estandar es reingresar o restablecer las credenciales de acceso.",
+      "fuente": "IEEE 802.11i, especificacion de autenticacion WPA2/WPA3"
+    },
+    {
+      "id": "R08",
+      "descripcion": "Detecta fallo de asignacion de IP cuando hay cable conectado pero no se obtuvo direccion IP.",
+      "condiciones": [
+        {"hecho": "cable_ethernet_conectado", "operador": "eq", "valor": "si"},
+        {"hecho": "ip_asignada", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "fallo_dhcp", "valor": true},
+      "prioridad": 75,
+      "explicacion": "Un cable fisicamente conectado que no recibe direccion IP indica una falla en el proceso de asignacion automatica (DHCP) entre el dispositivo y el router.",
+      "fuente": "RFC 2131, Dynamic Host Configuration Protocol"
+    },
+    {
+      "id": "R09",
+      "descripcion": "Detecta fallo de asignacion de IP por Wi-Fi cuando la autenticacion fue correcta pero no se obtuvo direccion IP.",
+      "condiciones": [
+        {"hecho": "wifi_activado_en_dispositivo", "operador": "eq", "valor": "si"},
+        {"hecho": "contrasena_wifi_correcta", "operador": "eq", "valor": "si"},
+        {"hecho": "ip_asignada", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "fallo_dhcp", "valor": true},
+      "prioridad": 75,
+      "explicacion": "Si la conexion Wi-Fi se autentico correctamente pero el dispositivo no recibio una direccion IP, el servidor DHCP del router no esta respondiendo o su rango de direcciones esta agotado.",
+      "fuente": "RFC 2131, Dynamic Host Configuration Protocol"
+    },
+    {
+      "id": "R10",
+      "descripcion": "Convierte el fallo de DHCP en conclusion, descartando que se trate de un reinicio en curso.",
+      "condiciones": [
+        {"hecho": "fallo_dhcp", "operador": "eq", "valor": true},
+        {"hecho": "reinicio_router_reciente", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "Fallo en la asignacion de direccion IP (DHCP)",
+        "recomendacion": "Reinicie el router y el adaptador de red del dispositivo; si persiste, revise que el servidor DHCP del router este habilitado y que no se haya agotado el rango de direcciones."
+      },
+      "prioridad": 70,
+      "explicacion": "Descartado un reinicio en curso, un fallo persistente de DHCP requiere reiniciar ambos extremos de la comunicacion o revisar la configuracion del servidor DHCP.",
+      "fuente": "RFC 2131, Dynamic Host Configuration Protocol"
+    },
+    {
+      "id": "R11",
+      "descripcion": "Detecta que, aun con IP asignada, el dispositivo no logra comunicarse con la puerta de enlace (router).",
+      "condiciones": [
+        {"hecho": "ip_asignada", "operador": "eq", "valor": "si"},
+        {"hecho": "ping_gateway_exitoso", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "fallo_red_local", "valor": true},
+      "prioridad": 65,
+      "explicacion": "Tener una direccion IP pero no poder alcanzar la puerta de enlace senala un problema dentro de la red local, no con el proveedor de internet.",
+      "fuente": "Cisco Networking Academy, Introduction to Networks, cap. 8"
+    },
+    {
+      "id": "R12",
+      "descripcion": "Distingue si el fallo de red local es especifico de este dispositivo comparandolo con el resto de equipos del hogar.",
+      "condiciones": [
+        {"hecho": "fallo_red_local", "operador": "eq", "valor": true},
+        {"hecho": "otros_dispositivos_con_internet", "operador": "eq", "valor": "si"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "fallo_especifico_dispositivo", "valor": true},
+      "prioridad": 60,
+      "explicacion": "Si otros equipos del hogar si navegan con normalidad, el router y el proveedor funcionan correctamente, y el problema queda acotado a este dispositivo.",
+      "fuente": "Cisco Networking Academy, Introduction to Networks, cap. 8"
+    },
+    {
+      "id": "R13",
+      "descripcion": "Convierte el fallo especifico de dispositivo en conclusion final con recomendacion.",
+      "condiciones": [
+        {"hecho": "fallo_especifico_dispositivo", "operador": "eq", "valor": true}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "Falla de red local limitada a este dispositivo, no al proveedor de internet",
+        "recomendacion": "Reinicie el adaptador de red, olvide y vuelva a unir la red Wi-Fi, o actualice el controlador (driver) del adaptador de red del dispositivo."
+      },
+      "prioridad": 55,
+      "explicacion": "Al confirmarse que solo este dispositivo falla mientras otros funcionan, la solucion se enfoca exclusivamente en el equipo afectado.",
+      "fuente": "Cisco Networking Academy, Introduction to Networks, cap. 8"
+    },
+    {
+      "id": "R14",
+      "descripcion": "Detecta perdida de conexion a internet cuando la puerta de enlace responde pero no hay respuesta de un servidor DNS publico externo.",
+      "condiciones": [
+        {"hecho": "ping_gateway_exitoso", "operador": "eq", "valor": "si"},
+        {"hecho": "ping_dns_exitoso", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "fallo_conexion_internet", "valor": true},
+      "prioridad": 65,
+      "explicacion": "Alcanzar la puerta de enlace local pero no un servidor externo (por ejemplo 8.8.8.8) indica que la red local funciona pero la salida hacia internet esta interrumpida.",
+      "fuente": "Cisco Networking Academy, Introduction to Networks, cap. 8"
+    },
+    {
+      "id": "R15",
+      "descripcion": "Determina si la perdida de internet afecta a todo el hogar (posible corte del proveedor) segun el estado de otros dispositivos.",
+      "condiciones": [
+        {"hecho": "fallo_conexion_internet", "operador": "eq", "valor": true},
+        {"hecho": "otros_dispositivos_con_internet", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "posible_corte_isp", "valor": true},
+      "prioridad": 60,
+      "explicacion": "Si ningun dispositivo del hogar tiene salida a internet mientras la red local sigue operativa, la causa mas probable es una interrupcion del servicio del proveedor (ISP).",
+      "fuente": "OpenReach, Guia de diagnostico de averias de ultima milla"
+    },
+    {
+      "id": "R16",
+      "descripcion": "Concluye corte programado cuando existe un aviso previo de mantenimiento del proveedor.",
+      "condiciones": [
+        {"hecho": "posible_corte_isp", "operador": "eq", "valor": true},
+        {"hecho": "corte_programado_isp", "operador": "eq", "valor": "si"}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "Corte de servicio programado por el proveedor de internet",
+        "recomendacion": "Espere a que finalice la ventana de mantenimiento anunciada por el proveedor; no es necesario reiniciar equipos."
+      },
+      "prioridad": 58,
+      "explicacion": "Un aviso previo de mantenimiento confirma que la interrupcion es planificada y transitoria, por lo que no se requiere intervencion del usuario.",
+      "fuente": "OpenReach, Guia de diagnostico de averias de ultima milla"
+    },
+    {
+      "id": "R17",
+      "descripcion": "Concluye falla no planificada del proveedor cuando no existe aviso de mantenimiento.",
+      "condiciones": [
+        {"hecho": "posible_corte_isp", "operador": "eq", "valor": true},
+        {"hecho": "corte_programado_isp", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "Posible falla no planificada del proveedor de internet (ISP)",
+        "recomendacion": "Contacte a la linea de soporte del proveedor para reportar la falla, confirme que el servicio este al dia y consulte si hay una averia masiva en la zona."
+      },
+      "prioridad": 58,
+      "explicacion": "Sin aviso previo de mantenimiento, un corte que afecta a todo el hogar apunta a una averia no planificada que debe reportarse al proveedor.",
+      "fuente": "OpenReach, Guia de diagnostico de averias de ultima milla"
+    },
+    {
+      "id": "R18",
+      "descripcion": "Detecta fallo de resolucion de nombres cuando el servidor DNS responde a ping pero el dominio no se resuelve.",
+      "condiciones": [
+        {"hecho": "ping_dns_exitoso", "operador": "eq", "valor": "si"},
+        {"hecho": "resolucion_dns_exitosa", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {"tipo": "hecho", "hecho": "fallo_dns", "valor": true},
+      "prioridad": 65,
+      "explicacion": "Responder al ping por direccion IP pero no poder resolver un nombre de dominio es la senal caracteristica de un fallo especifico del servicio DNS, distinto de un corte general de internet.",
+      "fuente": "RFC 1035, Domain Names - Implementation and Specification"
+    },
+    {
+      "id": "R19",
+      "descripcion": "Convierte el fallo de DNS en conclusion con recomendacion de cambio de servidor.",
+      "condiciones": [
+        {"hecho": "fallo_dns", "operador": "eq", "valor": true}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "Fallo en la resolucion de nombres DNS",
+        "recomendacion": "Configure un servidor DNS publico alternativo (por ejemplo 8.8.8.8 o 1.1.1.1) en el dispositivo o en el router, y reinicie el router si el problema persiste."
+      },
+      "prioridad": 60,
+      "explicacion": "Identificado el fallo de DNS, la correccion estandar es apuntar el dispositivo a un servidor DNS alternativo mientras se restablece el del proveedor.",
+      "fuente": "RFC 1035, Domain Names - Implementation and Specification"
+    },
+    {
+      "id": "R20",
+      "descripcion": "Detecta senal Wi-Fi debil por distancia excesiva al router combinada con interferencia visible de otros equipos electronicos u obstaculos.",
+      "condiciones": [
+        {"hecho": "dispositivo_ve_red_wifi", "operador": "eq", "valor": "si"},
+        {"hecho": "distancia_al_router", "operador": "eq", "valor": "lejos"},
+        {"hecho": "interferencia_visible", "operador": "eq", "valor": "si"}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "Senal Wi-Fi debil por distancia e interferencia electromagnetica",
+        "recomendacion": "Acerquese al router, reubique equipos electronicos que generen interferencia (microondas, telefonos inalambricos) o instale un repetidor/extensor de senal."
+      },
+      "prioridad": 45,
+      "explicacion": "La combinacion de distancia considerable e interferencia visible explica una senal debil aun cuando la red es visible y las credenciales son correctas.",
+      "fuente": "IEEE 802.11, especificacion de la capa fisica de redes inalambricas"
+    },
+    {
+      "id": "R21",
+      "descripcion": "Concluye que la conexion a internet funciona correctamente cuando toda la cadena de verificacion (gateway, DNS y resolucion de nombres) es exitosa.",
+      "condiciones": [
+        {"hecho": "ping_gateway_exitoso", "operador": "eq", "valor": "si"},
+        {"hecho": "ping_dns_exitoso", "operador": "eq", "valor": "si"},
+        {"hecho": "resolucion_dns_exitosa", "operador": "eq", "valor": "si"}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "La conexion a internet funciona correctamente",
+        "recomendacion": "No se detectan fallas en la red local ni en la salida a internet; si percibe lentitud, considere realizar una prueba de velocidad y revisar la cantidad de dispositivos conectados."
+      },
+      "prioridad": 40,
+      "explicacion": "Cuando las tres verificaciones de conectividad (puerta de enlace, servidor DNS y resolucion de nombres) son exitosas, no existe evidencia de ninguna falla en la ruta hacia internet.",
+      "fuente": "Cisco Networking Academy, Introduction to Networks, cap. 8"
+    },
+    {
+      "id": "R22",
+      "descripcion": "Detecta que una VPN activa podria estar interfiriendo con la resolucion de nombres, un patron distinto de un fallo de DNS del proveedor.",
+      "condiciones": [
+        {"hecho": "vpn_activa", "operador": "eq", "valor": "si"},
+        {"hecho": "resolucion_dns_exitosa", "operador": "eq", "valor": "no"}
+      ],
+      "resultado": {
+        "tipo": "conclusion",
+        "conclusion": "La VPN activa podria estar interfiriendo con la resolucion de nombres",
+        "recomendacion": "Desactive temporalmente la VPN y vuelva a probar la navegacion; si el problema desaparece, revise la configuracion de DNS de la VPN."
+      },
+      "prioridad": 62,
+      "explicacion": "Muchas VPN redirigen las consultas DNS a traves de su propio tunel; si ese servicio falla, el dominio no se resuelve aunque el resto de la red funcione.",
+      "fuente": "RFC 1035, Domain Names - Implementation and Specification"
+    }
+  ]
+}
